@@ -1,0 +1,25 @@
+{
+  "name": "birds-eye-for-business",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/miss-mad/birds-eye-for-business.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/miss-mad/birds-eye-for-business/issues"
+  },
+  "homepage": "https://github.com/miss-mad/birds-eye-for-business#readme",
+  "dependencies": {
+    "console.table": "^0.10.0",
+    "dotenv": "^16.0.2",
+    "inquirer": "^9.1.2",
+    "mysql2": "^2.3.3"
+  }
+}
