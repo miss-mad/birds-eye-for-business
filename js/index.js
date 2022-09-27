@@ -1,7 +1,6 @@
 // "require" is a way to target a file or package needed to create this readme generator app
 // in the first two cases, "require" allows us to use certain packages within this js file
 const inquirer = require("inquirer");
-const fs = require("fs");
 // in this case, information from another js file is imported so that we can use it in this one
 // const generateJSON = require("");
 
@@ -226,12 +225,4 @@ function updateEmployeeRoleQuestion() {
     });
 }
 
-// create json file with file system (fs) which is built into Node.js
-const writeToFile = (answers) => {
-  fs.writeFile("./dist/index.html", generateHTML(answers), (err) => {
-    err ? console.log(err) : console.log("json file successfully created!");
-  });
-};
-
-// fires the first question to start
-mainMenuQuestion();
+module.exports = mainMenuQuestion;
