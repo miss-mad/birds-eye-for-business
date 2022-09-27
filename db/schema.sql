@@ -4,8 +4,8 @@ CREATE DATABASE business_db;
 USE business_db;
 
 CREATE TABLE department (
-  id INT NOT NULL PRIMARY KEY,
-  name VARCHAR(30) NOT NULL
+    id INT NOT NULL PRIMARY KEY,
+    name VARCHAR(30) NOT NULL
 );
 
 CREATE TABLE role (
@@ -23,11 +23,10 @@ CREATE TABLE employee (
   first_name VARCHAR(30) NOT NULL,
   last_name VARCHAR(30) NOT NULL,
   role_id INT NOT NULL,
-  manager_id INT
-  FOREIGN KEY (manager_id)
-  REFERENCES employee(id)
-  ON DELETE SET NULL
+  manager_id INT, FOREIGN KEY (manager_id) REFERENCES employee(id) ON DELETE SET NULL
 );
+
+
 
 -- See database in use --
 SELECT DATABASE();
