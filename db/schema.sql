@@ -26,5 +26,4 @@ CREATE TABLE employee (
   manager_id INT, FOREIGN KEY (manager_id) REFERENCES employee(id) ON DELETE SET NULL
 );
 
--- See database in use --
 SELECT DATABASE();

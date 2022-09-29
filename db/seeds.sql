@@ -17,7 +17,6 @@ VALUES
     ("Legal Team Lead", 250000, 3),
     ("Lawyer", 190000, 3),
     ("Customer Service", 60000, 5);
-    -- ( 10, "HR Representative");
 
 INSERT INTO employee (first_name, last_name, role_id, manager_id)
 VALUES
