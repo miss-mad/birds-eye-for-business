@@ -1,10 +1,27 @@
-// "require" is a way to target a file or package needed to create this readme generator app
-// in the first two cases, "require" allows us to use certain packages within this js file
 const inquirer = require("inquirer");
-const queries = require("./queries");
-// in this case, information from another js file is imported so that we can use it in this one
-// const generateJSON = require("");
-console.log(queries);
+// const queries = require("./queries");
+// console.log(queries);
+require("dotenv").config();
+const mysql = require("mysql2"); // Import and require mysql2
+// const mainMenuQuestion = require("./index");
+// const app = require("../app");
+let dbUser = process.env.DB_USER;
+let dbPassword = process.env.DB_PASSWORD;
+let dbName = process.env.DB_NAME;
+
+// Connect to database
+const db = mysql.createConnection(
+  {
+    // my computer
+    host: "localhost",
+    // MySQL username stored in an environmental variable
+    user: dbUser, // or process.env.DB_USER
+    // MySQL password stored in an environmental variable
+    password: dbPassword, // or process.env.DB_PASSWORD
+    database: dbName, // or process.env.DB_NAME
+  },
+  console.log(`Connected to the business_db database.`)
+);
 
 function mainMenuQuestion() {
   inquirer
@@ -29,13 +46,14 @@ function mainMenuQuestion() {
       // determines which function to call next depending on the user's choice from the above list
       if (answer.mainMenu === "View all departments") {
         // console.table function to print sql table of all departments
-        queries.viewAllDepartments();
+        viewAllDepartments();
+        // mainMenuQuestion();
       } else if (answer.mainMenu === "View all roles") {
         // console.table function to print sql table of all roles
-        queries.viewAllRoles();
+        viewAllRoles();
       } else if (answer.mainMenu === "View all employees") {
         // console.table function to print sql table of all employees
-        queries.viewAllEmployees();
+        viewAllEmployees();
       } else if (answer.mainMenu === "Add a department") {
         addDepartmentQuestion();
         // console.table function to print sql table of all employees
@@ -46,7 +64,8 @@ function mainMenuQuestion() {
       } else if (answer.mainMenu === "Update an employee role") {
         updateEmployeeRoleQuestion();
       } else {
-        // have a quit function? or just return
+        // have a quit function? .exit()? or just return
+        return console.log("bye!").exit();
       }
     })
 
@@ -54,10 +73,7 @@ function mainMenuQuestion() {
       if (error.isTtyError) {
         console.log(error);
       } else {
-        console.log(
-          "Success! (but no json file generated - something is probably missing from the generateJSON)",
-          error
-        );
+        console.log("Success! (but something is missing)", error);
       }
     });
 }
@@ -73,19 +89,14 @@ function addDepartmentQuestion() {
     ])
 
     .then((answer) => {
-      // print message "Added <department name> to the database"
-      console.log("Added <department name> to the database");
-      mainMenuQuestion();
+      addDepartmentData(answer.departmentName);
     })
 
     .catch((error) => {
       if (error.isTtyError) {
         console.log(error);
       } else {
-        console.log(
-          "Success! (but no json file generated - something is probably missing from the generateJSON)",
-          error
-        );
+        console.log("Success! (but something is missing)", error);
       }
     });
 }
@@ -112,19 +123,29 @@ function addRoleQuestion() {
     ])
 
     .then((answer) => {
-      // print message "Added <role name> to the database"
-      console.log("Added <role name> to the database");
-      mainMenuQuestion();
+      let temporaryId = null;
+      // translate answer.roleDepartment from string to corresponding dept ID
+      // query db w a where clause that incl what dept name corresponds to which dept ID
+      // SELECT * FROM business_db.department WHERE name = "answer.roleDepartment";
+      // resulting table has id
+
+      db.promise()
+        .query(
+          `SELECT id FROM business_db.department WHERE name = "${answer.roleDepartment}"`
+        )
+        .then(([rows, fields]) => {
+          temporaryId = rows[0].id;
+          console.log(temporaryId);
+          addRoleData(answer.roleName, answer.roleSalary, temporaryId);
+        })
+        .catch((err) => console.log(err));
     })
 
     .catch((error) => {
       if (error.isTtyError) {
         console.log(error);
       } else {
-        console.log(
-          "Success! (but no json file generated - something is probably missing from the generateJSON)",
-          error
-        );
+        console.log("Success! (but something is missing)", error);
       }
     });
 }
@@ -162,25 +183,37 @@ function addEmployeeQuestion() {
       {
         type: "list",
         message: "Who is the employee's manager?",
-        choices: ["", "", "", "", "", "", "", "", "", "", "None"],
+        choices: [
+          "John Doe",
+          "Mike Chan",
+          "Ashley Rodriguez",
+          "Kevin Tupik",
+          "Kunal Singh",
+          "Malia Brown",
+          "Sarah Lourd",
+          "Tom Allen",
+          "Jason Frello",
+          "None",
+        ],
         name: "employeeManager",
       },
     ])
 
     .then((answer) => {
       // print message "Added <employee first + last name> to the database"
-      console.log("Added <employee first + last name> to the database");
-      mainMenuQuestion();
+      console.log(
+        `Added ${
+          (answer.employeeFirstName, answer.employeeLastName)
+        } to the database`
+      );
+      addEmployeeData(answer.employeeFirstName, answer.employeeLastName);
     })
 
     .catch((error) => {
       if (error.isTtyError) {
         console.log(error);
       } else {
-        console.log(
-          "Success! (but no json file generated - something is probably missing from the generateJSON)",
-          error
-        );
+        console.log("Success! (but something is missing)", error);
       }
     });
 }
@@ -191,7 +224,18 @@ function updateEmployeeRoleQuestion() {
       {
         type: "list",
         message: "Which employee do you want to update?",
-        choices: ["", "", "", "", "", "", "", "", "", ""],
+        choices: [
+          "John Doe",
+          "Mike Chan",
+          "Ashley Rodriguez",
+          "Kevin Tupik",
+          "Kunal Singh",
+          "Malia Brown",
+          "Sarah Lourd",
+          "Tom Allen",
+          "Jason Frello",
+          "None",
+        ],
         name: "updateEmployeeName",
       },
       {
@@ -215,20 +259,88 @@ function updateEmployeeRoleQuestion() {
 
     .then((answer) => {
       // print message "Updated employee's role"
-      console.log("Updated employee's role");
-      mainMenuQuestion();
+      console.log(`Updated ${answer.updateEmployeeName}'s role`);
+      // updateEmployeeRoleData(answer.updateEmployeeName);
     })
 
     .catch((error) => {
       if (error.isTtyError) {
         console.log(error);
       } else {
-        console.log(
-          "Success! (but no json file generated - something is probably missing from the generateJSON)",
-          error
-        );
+        console.log("Success! (but something is missing)", error);
       }
     });
 }
 
-module.exports = mainMenuQuestion;
+// Query database
+function viewAllDepartments() {
+  db.promise()
+    .query("SELECT * FROM business_db.department;")
+    .then(([rows, fields]) => {
+      console.table(rows);
+    })
+    .catch((err) => console.log(err))
+    .then(() => mainMenuQuestion());
+}
+
+function viewAllRoles() {
+  db.promise()
+    .query("SELECT * FROM business_db.role;")
+    .then(([rows, fields]) => {
+      console.table(rows);
+    })
+    .catch((err) => console.log(err));
+  // .then(() => mainMenuQuestion());
+}
+
+function viewAllEmployees() {
+  db.promise()
+    .query("SELECT * FROM business_db.employee;")
+    .then(([rows, fields]) => {
+      console.table(rows);
+    })
+    .catch((err) => console.log(err))
+    .then(() => mainMenuQuestion());
+}
+
+function addDepartmentData(answer) {
+  db.promise()
+    .query(`INSERT INTO department (name) VALUES ("${answer}");`)
+    .then(() => {
+      console.log(`Added ${answer.departmentName} to the database`);
+      viewAllDepartments();
+    })
+    .catch((err) => console.log(err));
+}
+
+function addRoleData(roleName, roleSalary, roleDepartmentId) {
+  console.log(roleDepartmentId);
+  db.promise()
+    .query(
+      `INSERT INTO role (title, salary, department_id) VALUES ("${roleName}", "${roleSalary}", "${roleDepartmentId}");`
+    )
+    .then((response) => {
+      console.log(response);
+      console.log(`Added ${roleName} to the database`);
+    })
+    .catch((err) => console.log(err));
+}
+
+function addEmployeeData(answer) {
+  db.promise()
+    .query(`INSERT INTO employee (name) VALUES ("${answer}");`)
+    .then(viewAllEmployees())
+    .catch((err) => console.log(err));
+}
+
+function updateEmployeeRoleData(answer) {
+  db.promise()
+    .query(`INSERT INTO employee (name) VALUES ("${answer}");`)
+    .then(viewAllEmployees())
+    .catch((err) => console.log(err));
+}
+
+mainMenuQuestion();
+// module.exports = { viewAllDepartments, viewAllRoles, viewAllEmployees };
+
+// module.exports = mainMenuQuestion;

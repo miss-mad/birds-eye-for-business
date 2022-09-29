@@ -1,5 +1,6 @@
 require("dotenv").config();
 const mysql = require("mysql2"); // Import and require mysql2
+const mainMenuQuestion = require("./index");
 let dbUser = process.env.DB_USER;
 let dbPassword = process.env.DB_PASSWORD;
 let dbName = process.env.DB_NAME;
@@ -23,6 +24,7 @@ const db = mysql.createConnection(
 function viewAllDepartments() {
   db.query("SELECT * FROM business_db.department;", function (err, results) {
     console.table(results);
+    mainMenuQuestion;
   });
 }
 

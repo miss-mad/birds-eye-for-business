@@ -1,6 +1,4 @@
-const start = require("./js");
-
+const start = require("./js/index");
 
 // Start App Here
-
-start();
+start;
