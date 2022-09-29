@@ -1,15 +1,18 @@
-const inquirer = require("inquirer");
+// importing npm packages
+const inquirer = require("inquirer"); // Import and require inquirer
 // const queries = require("./queries");
 // console.log(queries);
-require("dotenv").config();
 const mysql = require("mysql2"); // Import and require mysql2
+require("dotenv").config(); // Import and require/configure dotenv
 // const mainMenuQuestion = require("./index");
 // const app = require("../app");
+
+// dotenv variables to mask sensitive info
 let dbUser = process.env.DB_USER;
 let dbPassword = process.env.DB_PASSWORD;
 let dbName = process.env.DB_NAME;
 
-// Connect to database
+// Connect to database & use dotenv
 const db = mysql.createConnection(
   {
     // my computer
@@ -23,6 +26,7 @@ const db = mysql.createConnection(
   console.log(`Connected to the business_db database.`)
 );
 
+// -------------------- BEGIN QUESTIONS --------------------
 function mainMenuQuestion() {
   inquirer
     .prompt([
@@ -92,13 +96,7 @@ function addDepartmentQuestion() {
       addDepartmentData(answer.departmentName);
     })
 
-    .catch((error) => {
-      if (error.isTtyError) {
-        console.log(error);
-      } else {
-        console.log("Success! (but something is missing)", error);
-      }
-    });
+    .catch((err) => console.log(err));
 }
 
 function addRoleQuestion() {
@@ -123,20 +121,21 @@ function addRoleQuestion() {
     ])
 
     .then((answer) => {
-      let temporaryId = null;
-      // translate answer.roleDepartment from string to corresponding dept ID
-      // query db w a where clause that incl what dept name corresponds to which dept ID
+      let temporaryDeptRoleId = null;
+      // translate answer.roleDepartment from string to corresponding dept id
+      // query db with a WHERE clause that includes what dept name corresponds to which dept id
       // SELECT * FROM business_db.department WHERE name = "answer.roleDepartment";
-      // resulting table has id
+      // resulting table has id that corresponds with department user chose
 
       db.promise()
         .query(
+          // could do SELECT * FROM... but id is slightly more specific/readable to what I am targeting
           `SELECT id FROM business_db.department WHERE name = "${answer.roleDepartment}"`
         )
         .then(([rows, fields]) => {
-          temporaryId = rows[0].id;
-          console.log(temporaryId);
-          addRoleData(answer.roleName, answer.roleSalary, temporaryId);
+          temporaryDeptRoleId = rows[0].id;
+          // console.log(temporaryDeptRoleId);
+          addRoleData(answer.roleName, answer.roleSalary, temporaryDeptRoleId);
         })
         .catch((err) => console.log(err));
     })
@@ -200,22 +199,37 @@ function addEmployeeQuestion() {
     ])
 
     .then((answer) => {
-      // print message "Added <employee first + last name> to the database"
-      console.log(
-        `Added ${
-          (answer.employeeFirstName, answer.employeeLastName)
-        } to the database`
-      );
-      addEmployeeData(answer.employeeFirstName, answer.employeeLastName);
+      let temporaryEmployeeRoleId = null;
+      let temporaryManagerId = null;
+      // translate answer.roleDepartment from string to corresponding dept id
+      // query db with a WHERE clause that includes what dept name corresponds to which dept id
+      // SELECT * FROM business_db.department WHERE name = "answer.roleDepartment";
+      // resulting table has id that corresponds with department user chose
+
+      db.promise()
+        .query(
+          // could do SELECT * FROM... but id is slightly more specific/readable to what I am targeting
+          `SELECT id FROM business_db.role WHERE title = "${answer.employeeRole}"`
+        )
+        .query(
+          `SELECT id FROM business_db.employee WHERE first_name = "${answer.employeeFirstName}" AND last_name = "${answer.employeeLastName}";`
+        )
+        .then(([rows, fields]) => {
+          temporaryEmployeeRoleId = rows[0].id;
+          temporaryManagerId = rows[0].id;
+          console.log(temporaryEmployeeRoleId);
+          console.log(temporaryManagerId);
+          addEmployeeData(
+            answer.employeeFirstName,
+            answer.employeeLastName,
+            temporaryEmployeeRoleId,
+            temporaryManagerId
+          );
+        })
+        .catch((err) => console.log(err));
     })
 
-    .catch((error) => {
-      if (error.isTtyError) {
-        console.log(error);
-      } else {
-        console.log("Success! (but something is missing)", error);
-      }
-    });
+    .catch((err) => console.log(err));
 }
 
 function updateEmployeeRoleQuestion() {
@@ -271,8 +285,11 @@ function updateEmployeeRoleQuestion() {
       }
     });
 }
+// -------------------- END QUESTIONS --------------------
 
 // Query database
+
+// -------------------- VIEW DATA ONLY --------------------
 function viewAllDepartments() {
   db.promise()
     .query("SELECT * FROM business_db.department;")
@@ -289,8 +306,8 @@ function viewAllRoles() {
     .then(([rows, fields]) => {
       console.table(rows);
     })
-    .catch((err) => console.log(err));
-  // .then(() => mainMenuQuestion());
+    .catch((err) => console.log(err))
+    .then(() => mainMenuQuestion());
 }
 
 function viewAllEmployees() {
@@ -302,7 +319,9 @@ function viewAllEmployees() {
     .catch((err) => console.log(err))
     .then(() => mainMenuQuestion());
 }
+// -------------------- END VIEW DATA --------------------
 
+// -------------------- ADD DATA ONLY --------------------
 function addDepartmentData(answer) {
   db.promise()
     .query(`INSERT INTO department (name) VALUES ("${answer}");`)
@@ -320,25 +339,43 @@ function addRoleData(roleName, roleSalary, roleDepartmentId) {
       `INSERT INTO role (title, salary, department_id) VALUES ("${roleName}", "${roleSalary}", "${roleDepartmentId}");`
     )
     .then((response) => {
-      console.log(response);
+      // console.log(response);
       console.log(`Added ${roleName} to the database`);
+      viewAllRoles();
     })
     .catch((err) => console.log(err));
 }
 
-function addEmployeeData(answer) {
+function addEmployeeData(
+  employeeFirstName,
+  employeeLastName,
+  employeeRole,
+  employeeManager
+) {
   db.promise()
-    .query(`INSERT INTO employee (name) VALUES ("${answer}");`)
-    .then(viewAllEmployees())
+    .query(
+      `INSERT INTO employee (first_name, last_name, role_id, manager_id) VALUES ("${employeeFirstName}", "${employeeLastName}", "${employeeRole}", "${employeeManager}");`
+    )
+    .then(() => {
+      viewAllEmployees();
+      console.log(
+        `Added ${
+          (answer.employeeFirstName, answer.employeeLastName)
+        } to the database`
+      );
+    })
     .catch((err) => console.log(err));
 }
+// -------------------- END ADD DATA --------------------
 
+// -------------------- UPDATE DATA ONLY --------------------
 function updateEmployeeRoleData(answer) {
   db.promise()
     .query(`INSERT INTO employee (name) VALUES ("${answer}");`)
     .then(viewAllEmployees())
     .catch((err) => console.log(err));
 }
+// -------------------- END UPDATE DATA --------------------
 
 mainMenuQuestion();
 // module.exports = { viewAllDepartments, viewAllRoles, viewAllEmployees };
