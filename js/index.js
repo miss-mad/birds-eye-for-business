@@ -1,8 +1,10 @@
 // "require" is a way to target a file or package needed to create this readme generator app
 // in the first two cases, "require" allows us to use certain packages within this js file
 const inquirer = require("inquirer");
+const queries = require("./queries");
 // in this case, information from another js file is imported so that we can use it in this one
 // const generateJSON = require("");
+console.log(queries);
 
 function mainMenuQuestion() {
   inquirer
@@ -27,12 +29,16 @@ function mainMenuQuestion() {
       // determines which function to call next depending on the user's choice from the above list
       if (answer.mainMenu === "View all departments") {
         // console.table function to print sql table of all departments
+        queries.viewAllDepartments();
       } else if (answer.mainMenu === "View all roles") {
         // console.table function to print sql table of all roles
+        queries.viewAllRoles();
       } else if (answer.mainMenu === "View all employees") {
         // console.table function to print sql table of all employees
+        queries.viewAllEmployees();
       } else if (answer.mainMenu === "Add a department") {
         addDepartmentQuestion();
+        // console.table function to print sql table of all employees
       } else if (answer.mainMenu === "Add a role") {
         addRoleQuestion();
       } else if (answer.mainMenu === "Add an employee") {
