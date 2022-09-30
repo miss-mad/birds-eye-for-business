@@ -464,7 +464,7 @@ function addEmployeeData(
     .then(() => {
       // After the query, a confirmation message is printed to the console
       console.log(
-        `Added ${(employeeFirstName, employeeLastName)} to the database`
+        `Added ${employeeFirstName} ${employeeLastName} to the database`
       );
       // Then the viewAllEmployees() function is called again to view the role list with the new addition
       viewAllEmployees();
