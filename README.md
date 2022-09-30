@@ -18,7 +18,7 @@ This is a back-end application that allows a user to view or update a workplace'
 
 This challenge does not include a deployed application. Instead, a screen-recorded video is submitted alongside the github repo link.
 
-Video link:
+Video link: https://drive.google.com/file/d/1i9vDdDTLYLmDfU2recQM0PSODGzLyGBb/view
 
 ## Future Improvements
 
@@ -34,7 +34,7 @@ Video link:
 
 Below is a screenshot of Bird's Eye for Business.
 
-![Bird's Eye for Business screenshot 1]()
+![Bird's Eye for Business screenshot 1](../birds-eye-for-business/assets/images/Birds_Eye_for_Business_screenshot_1.JPG)
 
 ## Credits
 
