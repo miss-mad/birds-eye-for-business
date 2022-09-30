@@ -22,13 +22,9 @@ Video link:
 
 ## Future Improvements
 
- * 
-
-## Installation
-
-To operate this app, follow these instructions:
-
-1] 
+ * Separate js files into a better file structure. I tried to separate them at first, but the functions I needed across files were not functioning properly. It was happier all together in one file in the end.
+ * Remove the (index) column from the tables when they print to the console.
+ * Add the bonus features like more updates, deleting data, and sorting the column views 
 
 ## Usage
 
