@@ -1,10 +1,13 @@
 // Importing npm packages
 const inquirer = require("inquirer"); // Import and require inquirer
-// const queries = require("./queries");
-// console.log(queries);
 const mysql = require("mysql2"); // Import and require mysql2
 const process = require("process");
 require("dotenv").config(); // Import and require/configure dotenv
+
+// Note that I installed console.table as an npm package, but it turns out I don't need it because console.table works by itself without the package
+
+// Tried to connect multiple js files by exporting/requiring, but it was happier all in one file for now
+// const queries = require("./queries");
 // const mainMenuQuestion = require("./index");
 // const app = require("../app");
 
@@ -212,9 +215,10 @@ function addEmployeeQuestion() {
 
     // This .then does the same as the addDepartmentQuestion() above, where it grabs the new employee first name, last name, role and manager based on the user input and then passes it to the addEmployeeData() function below
     // However, there are two extra steps:
-      // 1) The role and manager name the user chose from the list of options have to be translated for sql to understand it.
-      // 2) The role has to be translated to a numerical role_id and the manager has to be split into first_name and last_name categories based on the employee table data
+    // 1) The role and manager name the user chose from the list of options have to be translated for sql to understand it.
+    // 2) The role has to be translated to a numerical role_id and the manager has to be split into first_name and last_name categories based on the employee table data
     .then((answer) => {
+      // Placeholder variables that get reassigned later
       let temporaryEmployeeRoleId = null;
       let temporaryManagerId = null;
       // A database query to find the id associated with the role the new employee has
@@ -300,27 +304,63 @@ function updateEmployeeRoleQuestion() {
       },
     ])
 
+    // find id of employee to update
+    // find id of role to update
+    // store both 1 & 2 in temporary variables to pass to updateEmployeeRoleData() function
     .then((answer) => {
-      // let temporaryUpdateEmployeeRoleId = null;
-      // db.promise()
-      //   .query(
-      //     `UPDATE employee SET role_id = ${answer.updateEmployeeRole} WHERE id = 1;`
-      //   )
-      //   .then((rows) => {
-      //     temporaryUpdateEmployeeRoleId = rows[0].role_id;
-      //     console.log(temporaryUpdateEmployeeRoleId)
-      updateEmployeeRoleData(answer.updateEmployeeName);
-      //   })
-      //   .catch((err) => console.log(err));
+      // Placeholder variables that get reassigned later
+      let temporaryUpdateEmployeeId = null;
+      let temporaryUpdateEmployeeRoleId = null;
+
+      // A database query to find the id associated with the employee that needs an update
+      db.promise()
+        .query(
+          // Could do SELECT * FROM... but id is slightly more specific/readable to what we are targeting because we just want 1 number that corresponds to that employee
+          // Have to use the .split() string method to first separate the employee's first and last name for sql to understand it
+          `SELECT id FROM business_db.employee WHERE first_name = "${
+            answer.updateEmployeeName.split(" ")[0]
+          }" AND last_name = "${answer.updateEmployeeName.split(" ")[1]}";`
+        )
+        // Another .then is needed because there is a database query within an inquirer .prompt. Once we have the new employee's id given the name the user chose, then we can pass that info to the updateEmployeeRoleData() function later
+        .then((rows) => {
+          // console.log("rowsEmployeeId", rows);
+          // Accessing just the employee's id (just a number) with object bracket and dot notation
+          temporaryUpdateEmployeeId = rows[0][0].id;
+          // console.log("temporaryUpdateEmployeeId", temporaryUpdateEmployeeId);
+        })
+        // Catch any errors that occur within the database query
+        .catch((err) => console.log(err));
+
+      // Another database query to find the role_id associated with the new role the employee has
+      db.promise()
+        .query(
+          // Could do SELECT * FROM... but id is slightly more specific/readable to what we are targeting because we just want 1 number that corresponds to that employee's new role
+          `SELECT id FROM role
+              WHERE title = "${answer.updateEmployeeRole}";`
+        )
+        // Yet another .then for this database query. Once we have the new employee's translated role_id, then we can pass that info to the updateEmployeeRoleData() function later
+        .then(([rows, fields]) => {
+          // console.log("rowsEmployeeRoleId", rows);
+          // Accessing just the role_id (just a number) with object bracket and dot notation
+          temporaryUpdateEmployeeRoleId = rows[0].id;
+          // console.log(
+          //   "temporaryUpdateEmployeeRoleId",
+          //   temporaryUpdateEmployeeRoleId
+          // );
+        })
+        // And finally, we can give the updateEmployeeRoleData() function this info
+        .then(() => {
+          updateEmployeeRoleData(
+            temporaryUpdateEmployeeId,
+            temporaryUpdateEmployeeRoleId
+          );
+        })
+        // Catch any errors that occur within the database query
+        .catch((err) => console.log(err));
     })
 
-    .catch((error) => {
-      if (error.isTtyError) {
-        console.log(error);
-      } else {
-        console.log("Success! (but something is missing)", error);
-      }
-    });
+    // Catch any errors that occur within the inquirer .prompt
+    .catch((err) => console.log(err));
 }
 // -------------------- END QUESTIONS --------------------
 
@@ -436,13 +476,24 @@ function addEmployeeData(
 
 // -------------------- UPDATE DATA ONLY --------------------
 // Giving this function two parameters because there are two answers we need from the user
-function updateEmployeeRoleData(updateEmployeeName, updateEmployeeRole) {
+function updateEmployeeRoleData(updateEmployeeId, updateEmployeeRoleId) {
   db.promise()
-    // Query the database to insert data into the business_db database. Specifically, inserting data into the first_name, last_name and role_id columns and dynamically adding the user's typed new role info
-    .query(`INSERT INTO employee (name) VALUES ("${answer}");`)
+    // console
+    //   .log(
+    //     "updateEmployeeId",
+    //     updateEmployeeId,
+    //     "updateEmployeeRoleId",
+    //     updateEmployeeRoleId
+    //   )
+    // Query the database to insert data into the business_db database. Specifically, inserting data into the role_id columns and dynamically adding the user's new role info
+    .query(
+      `UPDATE employee
+    SET role_id = ${updateEmployeeRoleId}
+    WHERE id = ${updateEmployeeId};`
+    )
     .then(() => {
       // After the query, a confirmation message is printed to the console
-      console.log(`Updated ${answer}'s role`);
+      console.log(`Updated employee's role`);
       // Then the viewAllEmployees() function is called again to view the role list with the new update
       viewAllEmployees();
     })
@@ -454,7 +505,7 @@ function updateEmployeeRoleData(updateEmployeeName, updateEmployeeRole) {
 // Start the app
 mainMenuQuestion();
 
-// Tried to connect multiple js files by exporting/requiring, but it was happier all in one file for now
+// As noted above, I tried to connect multiple js files by exporting/requiring, but it was happier all in one file
 // module.exports = { viewAllDepartments, viewAllRoles, viewAllEmployees };
 
 // module.exports = mainMenuQuestion;
