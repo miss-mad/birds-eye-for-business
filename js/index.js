@@ -1,8 +1,9 @@
-// importing npm packages
+// Importing npm packages
 const inquirer = require("inquirer"); // Import and require inquirer
 // const queries = require("./queries");
 // console.log(queries);
 const mysql = require("mysql2"); // Import and require mysql2
+const process = require("process");
 require("dotenv").config(); // Import and require/configure dotenv
 // const mainMenuQuestion = require("./index");
 // const app = require("../app");
@@ -27,6 +28,7 @@ const db = mysql.createConnection(
 );
 
 // -------------------- BEGIN QUESTIONS --------------------
+// Main question that directs user to all other questions depending on what they choose to do
 function mainMenuQuestion() {
   inquirer
     .prompt([
@@ -47,32 +49,36 @@ function mainMenuQuestion() {
       },
     ])
     .then((answer) => {
-      // determines which function to call next depending on the user's choice from the above list
+      // Determines which function to call next depending on the user's choice from the above choices list
       if (answer.mainMenu === "View all departments") {
-        // console.table function to print sql table of all departments
+        // Calls this function, which is a console.table function to print sql table in terminal of all departments
         viewAllDepartments();
-        // mainMenuQuestion();
       } else if (answer.mainMenu === "View all roles") {
-        // console.table function to print sql table of all roles
+        // Calls this function, which is a console.table function to print sql table of all roles
         viewAllRoles();
       } else if (answer.mainMenu === "View all employees") {
-        // console.table function to print sql table of all employees
+        // Calls this function, which is a console.table function to print sql table of all employees
         viewAllEmployees();
       } else if (answer.mainMenu === "Add a department") {
+        // Calls this function, which asks for the new department details
         addDepartmentQuestion();
-        // console.table function to print sql table of all employees
       } else if (answer.mainMenu === "Add a role") {
+        // Calls this function, which asks for the new role details
         addRoleQuestion();
       } else if (answer.mainMenu === "Add an employee") {
+        // Calls this function, which asks for the new employee details
         addEmployeeQuestion();
       } else if (answer.mainMenu === "Update an employee role") {
+        // Calls this function, which asks for the updated employee details
         updateEmployeeRoleQuestion();
       } else {
-        // have a quit function? .exit()? or just return
-        return console.log("bye!").exit();
+        // Otherwise, exit!
+        console.log("All done!");
+        process.exit();
       }
     })
 
+    // Catch any errors that occur
     .catch((error) => {
       if (error.isTtyError) {
         console.log(error);
@@ -82,6 +88,7 @@ function mainMenuQuestion() {
     });
 }
 
+// Another inquirer function to gather new department details
 function addDepartmentQuestion() {
   inquirer
     .prompt([
@@ -91,14 +98,15 @@ function addDepartmentQuestion() {
         name: "departmentName",
       },
     ])
-
+    // Grabs the new department name based on the user input and then passes it to the addDepartmentData() function below
     .then((answer) => {
       addDepartmentData(answer.departmentName);
     })
-
+    // Catch any errors that occur
     .catch((err) => console.log(err));
 }
 
+// Another inquirer function to gather new role details
 function addRoleQuestion() {
   inquirer
     .prompt([
@@ -120,7 +128,10 @@ function addRoleQuestion() {
       },
     ])
 
+    // This .then does the same as the addDepartmentQuestion() above, where it grabs the new role name, salary and department based on the user input and then passes it to the addRoleData() function below
+    // However, there is an extra step: the department name the user chose from the list of options has to be translated to the numerical department_id for sql to understand it
     .then((answer) => {
+      // Placeholder variable that gets reassigned later
       let temporaryDeptRoleId = null;
       // translate answer.roleDepartment from string to corresponding dept id
       // query db with a WHERE clause that includes what dept name corresponds to which dept id
@@ -129,17 +140,21 @@ function addRoleQuestion() {
 
       db.promise()
         .query(
-          // could do SELECT * FROM... but id is slightly more specific/readable to what I am targeting
+          // Could do SELECT * FROM... but id is slightly more specific/readable to what we are targeting because we just want 1 number that corresponds to that department
           `SELECT id FROM business_db.department WHERE name = "${answer.roleDepartment}"`
         )
+        // Another .then is needed because there is a database query within an inquirer .prompt. Only when we have the new role's translated department_id, then we can pass that info to the addRoleData() function
         .then(([rows, fields]) => {
+          // Accessing just the department_id (just a number) with object bracket and dot notation
           temporaryDeptRoleId = rows[0].id;
-          console.log(rows);
+          // Passes user input to the addRoleData() function
           addRoleData(answer.roleName, answer.roleSalary, temporaryDeptRoleId);
         })
+        // Catch any errors that occur within the database query
         .catch((err) => console.log(err));
     })
 
+    // Catch any errors that occur within the inquirer .prompt
     .catch((error) => {
       if (error.isTtyError) {
         console.log(error);
@@ -149,6 +164,7 @@ function addRoleQuestion() {
     });
 }
 
+// Another inquirer function to gather new employee details
 function addEmployeeQuestion() {
   inquirer
     .prompt([
@@ -194,44 +210,42 @@ function addEmployeeQuestion() {
       },
     ])
 
+    // This .then does the same as the addDepartmentQuestion() above, where it grabs the new employee first name, last name, role and manager based on the user input and then passes it to the addEmployeeData() function below
+    // However, there are two extra steps:
+      // 1) The role and manager name the user chose from the list of options have to be translated for sql to understand it.
+      // 2) The role has to be translated to a numerical role_id and the manager has to be split into first_name and last_name categories based on the employee table data
     .then((answer) => {
       let temporaryEmployeeRoleId = null;
       let temporaryManagerId = null;
-      // translate answer.roleDepartment from string to corresponding dept id
-      // query db with a WHERE clause that includes what dept name corresponds to which dept id
-      // SELECT * FROM business_db.department WHERE name = "answer.roleDepartment";
-      // resulting table has id that corresponds with department user chose
-
+      // A database query to find the id associated with the role the new employee has
       db.promise()
         .query(
-          // retrieving role_id to convert into its corresponding number
-          // could do SELECT * FROM... but id is slightly more specific/readable to what I am targeting
+          // Could do SELECT * FROM... but id is slightly more specific/readable to what we are targeting because we just want 1 number that corresponds to that role title
           `SELECT id FROM business_db.role WHERE title = "${answer.employeeRole}"`
         )
+        // Another .then is needed because there is a database query within an inquirer .prompt. Once we have the new employee's translated role_id, then we can pass that info to the addEmployeeData() function later
         .then(([rows]) => {
-          // store role_id of the new employee
-          // console.log("rows", rows);
+          // Accessing just the role_id (just a number) with object bracket and dot notation
           temporaryEmployeeRoleId = rows[0].id;
-          console.log(temporaryEmployeeRoleId);
         })
+        // Catch any errors that occur within the database query
         .catch((err) => console.log(err));
-      // console.log("answer.employeeFirstName", answer.employeeFirstName);
-      // console.log("answer.employeeLastName", answer.employeeLastName);
+      // Another database query to find the manager_id associated with the manager the new employee has
       db.promise()
         .query(
-          // retrieving the manager_id if the new employee has a manager
+          // Retrieving the manager_id if the new employee has a manager
+          // Have to use the .split() string method to first separate the manager's first and last name for sql to understand it
           `SELECT manager_id FROM business_db.employee WHERE first_name = "${
             answer.employeeManager.split(" ")[0]
           }" AND last_name = "${answer.employeeManager.split(" ")[1]}";`
-          // SELECT id FROM business_db.employee WHERE first_name = "John" AND last_name = "Doe";
         )
+        // Yet another .then for this database query. Once we have the new employee's translated manager_id, then we can pass that info to the addEmployeeData() function later
         .then(([rows, fields]) => {
-          // console.log("rows2", rows);
+          // Accessing just the manager_id (just a number) with object bracket and dot notation
           temporaryManagerId = rows[0].manager_id;
-          console.log(temporaryManagerId);
         })
-        .then((test) => {
-          // console.log("test", test);
+        // And finally, we can give the addEmployeeData() function all of this info
+        .then(() => {
           addEmployeeData(
             answer.employeeFirstName,
             answer.employeeLastName,
@@ -239,9 +253,11 @@ function addEmployeeQuestion() {
             temporaryManagerId
           );
         })
+        // Catch any errors that occur within the database query
         .catch((err) => console.log(err));
     })
 
+    // Catch any errors that occur within the inquirer .prompt
     .catch((err) => console.log(err));
 }
 
@@ -280,14 +296,22 @@ function updateEmployeeRoleQuestion() {
           "Customer Service",
           "HR Representative",
         ],
-        name: "updateEmployeeName",
+        name: "updateEmployeeRole",
       },
     ])
 
     .then((answer) => {
-      db.promise().query(
-        
-      )
+      // let temporaryUpdateEmployeeRoleId = null;
+      // db.promise()
+      //   .query(
+      //     `UPDATE employee SET role_id = ${answer.updateEmployeeRole} WHERE id = 1;`
+      //   )
+      //   .then((rows) => {
+      //     temporaryUpdateEmployeeRoleId = rows[0].role_id;
+      //     console.log(temporaryUpdateEmployeeRoleId)
+      updateEmployeeRoleData(answer.updateEmployeeName);
+      //   })
+      //   .catch((err) => console.log(err));
     })
 
     .catch((error) => {
@@ -303,62 +327,89 @@ function updateEmployeeRoleQuestion() {
 // Query database
 
 // -------------------- VIEW DATA ONLY --------------------
+// console.table function to print sql table in terminal of all departments
 function viewAllDepartments() {
+  // In order for the printed sql table to not get squished/overridden by the main menu question, a promise is used
   db.promise()
+    // Query the database called business_db to request its data so that we can see it/print to console; specifically asking for the department table data
     .query("SELECT * FROM business_db.department;")
+    // After the query, we then print to the console with console.table
     .then(([rows, fields]) => {
       console.table(rows);
     })
+    // And catch any errors that occur
     .catch((err) => console.log(err))
+    // Then back to the main menu
     .then(() => mainMenuQuestion());
 }
 
+// console.table function to print sql table in terminal of all roles
 function viewAllRoles() {
+  // In order for the printed sql table to not get squished/overridden by the main menu question, a promise is used
   db.promise()
+    // Query the database called business_db to request its data so that we can see it/print to console; specifically asking for the role table data
     .query("SELECT * FROM business_db.role;")
+    // After the query, we then print to the console with console.table
     .then(([rows, fields]) => {
       console.table(rows);
     })
+    // And catch any errors that occur
     .catch((err) => console.log(err))
+    // Then back to the main menu
     .then(() => mainMenuQuestion());
 }
 
+// console.table function to print sql table in terminal of all employees
 function viewAllEmployees() {
+  // In order for the printed sql table to not get squished/overridden by the main menu question, a promise is used
   db.promise()
+    // Query the database called business_db to request its data so that we can see it/print to console; specifically asking for the employee table data
     .query("SELECT * FROM business_db.employee;")
+    // After the query, we then print to the console with console.table
     .then(([rows, fields]) => {
       console.table(rows);
     })
+    // And catch any errors that occur
     .catch((err) => console.log(err))
+    // Then back to the main menu
     .then(() => mainMenuQuestion());
 }
 // -------------------- END VIEW DATA --------------------
 
 // -------------------- ADD DATA ONLY --------------------
+// Only giving this function one parameter because there is only one answer the user would have given
 function addDepartmentData(answer) {
   db.promise()
+    // Query the database to insert data into the business_db database. Specifically, inserting data into the name column and dynamically adding the user's typed new department name
     .query(`INSERT INTO department (name) VALUES ("${answer}");`)
     .then(() => {
+      // After the query, a confirmation message is printed to the console
       console.log(`Added ${answer} to the database`);
+      // Then the viewAllDepartments() function is called again to view the department list with the new addition
       viewAllDepartments();
     })
+    // Catch any errors that occur
     .catch((err) => console.log(err));
 }
 
+// Giving this function three parameters because there are three answers we need from the user
 function addRoleData(roleName, roleSalary, roleDepartmentId) {
-  console.log(roleDepartmentId);
   db.promise()
+    // Query the database to insert data into the business_db database. Specifically, inserting data into the title, salary and department_id columns and dynamically adding the user's typed new role info
     .query(
       `INSERT INTO role (title, salary, department_id) VALUES ("${roleName}", "${roleSalary}", "${roleDepartmentId}");`
     )
     .then((response) => {
-      // console.log(response);
+      // After the query, a confirmation message is printed to the console
       console.log(`Added ${roleName} to the database`);
+      // Then the viewAllRoles() function is called again to view the role list with the new addition
       viewAllRoles();
     })
+    // Catch any errors that occur
     .catch((err) => console.log(err));
 }
 
+// Giving this function four parameters because there are four answers we need from the user
 function addEmployeeData(
   employeeFirstName,
   employeeLastName,
@@ -366,32 +417,44 @@ function addEmployeeData(
   employeeManagerId
 ) {
   db.promise()
+    // Query the database to insert data into the business_db database. Specifically, inserting data into the first_name, last_name, role_id, and manager_id columns and dynamically adding the user's typed new role info
     .query(
       `INSERT INTO employee (first_name, last_name, role_id, manager_id) VALUES ("${employeeFirstName}", "${employeeLastName}", "${employeeRoleId}", "${employeeManagerId}");`
     )
     .then(() => {
+      // After the query, a confirmation message is printed to the console
       console.log(
         `Added ${(employeeFirstName, employeeLastName)} to the database`
       );
+      // Then the viewAllEmployees() function is called again to view the role list with the new addition
       viewAllEmployees();
     })
+    // Catch any errors that occur
     .catch((err) => console.log(err));
 }
 // -------------------- END ADD DATA --------------------
 
 // -------------------- UPDATE DATA ONLY --------------------
-function updateEmployeeRoleData(answer) {
+// Giving this function two parameters because there are two answers we need from the user
+function updateEmployeeRoleData(updateEmployeeName, updateEmployeeRole) {
   db.promise()
+    // Query the database to insert data into the business_db database. Specifically, inserting data into the first_name, last_name and role_id columns and dynamically adding the user's typed new role info
     .query(`INSERT INTO employee (name) VALUES ("${answer}");`)
     .then(() => {
+      // After the query, a confirmation message is printed to the console
       console.log(`Updated ${answer}'s role`);
+      // Then the viewAllEmployees() function is called again to view the role list with the new update
       viewAllEmployees();
     })
+    // Catch any errors that occur
     .catch((err) => console.log(err));
 }
 // -------------------- END UPDATE DATA --------------------
 
+// Start the app
 mainMenuQuestion();
+
+// Tried to connect multiple js files by exporting/requiring, but it was happier all in one file for now
 // module.exports = { viewAllDepartments, viewAllRoles, viewAllEmployees };
 
 // module.exports = mainMenuQuestion;
