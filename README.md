@@ -34,7 +34,7 @@ Video link: https://drive.google.com/file/d/1i9vDdDTLYLmDfU2recQM0PSODGzLyGBb/vi
 
 Below is a screenshot of Bird's Eye for Business.
 
-![Bird's Eye for Business screenshot 1](../birds-eye-for-business/assets/images/Birds_Eye_for_Business_screenshot_1.JPG)
+![Bird's Eye for Business screenshot 1](./assets/images/Birds_Eye_for_Business_screenshot_1.JPG)
 
 ## Credits
 
