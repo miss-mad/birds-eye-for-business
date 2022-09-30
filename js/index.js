@@ -115,7 +115,7 @@ function addRoleQuestion() {
       {
         type: "list",
         message: "Which department does this role belong to?",
-        choices: ["Engineering", "Finance", "Legal", "Sales", "Service", "HR"],
+        choices: ["Engineering", "Finance", "Legal", "Sales", "Service"],
         name: "roleDepartment",
       },
     ])
@@ -134,7 +134,7 @@ function addRoleQuestion() {
         )
         .then(([rows, fields]) => {
           temporaryDeptRoleId = rows[0].id;
-          // console.log(temporaryDeptRoleId);
+          console.log(rows);
           addRoleData(answer.roleName, answer.roleSalary, temporaryDeptRoleId);
         })
         .catch((err) => console.log(err));
@@ -183,13 +183,9 @@ function addEmployeeQuestion() {
         type: "list",
         message: "Who is the employee's manager?",
         choices: [
-          "John Doe",
           "Mike Chan",
-          "Ashley Rodriguez",
           "Kevin Tupik",
-          "Kunal Singh",
           "Malia Brown",
-          "Sarah Lourd",
           "Tom Allen",
           "Jason Frello",
           "None",
@@ -208,17 +204,34 @@ function addEmployeeQuestion() {
 
       db.promise()
         .query(
+          // retrieving role_id to convert into its corresponding number
           // could do SELECT * FROM... but id is slightly more specific/readable to what I am targeting
           `SELECT id FROM business_db.role WHERE title = "${answer.employeeRole}"`
         )
+        .then(([rows]) => {
+          // store role_id of the new employee
+          // console.log("rows", rows);
+          temporaryEmployeeRoleId = rows[0].id;
+          console.log(temporaryEmployeeRoleId);
+        })
+        .catch((err) => console.log(err));
+      // console.log("answer.employeeFirstName", answer.employeeFirstName);
+      // console.log("answer.employeeLastName", answer.employeeLastName);
+      db.promise()
         .query(
-          `SELECT id FROM business_db.employee WHERE first_name = "${answer.employeeFirstName}" AND last_name = "${answer.employeeLastName}";`
+          // retrieving the manager_id if the new employee has a manager
+          `SELECT manager_id FROM business_db.employee WHERE first_name = "${
+            answer.employeeManager.split(" ")[0]
+          }" AND last_name = "${answer.employeeManager.split(" ")[1]}";`
+          // SELECT id FROM business_db.employee WHERE first_name = "John" AND last_name = "Doe";
         )
         .then(([rows, fields]) => {
-          temporaryEmployeeRoleId = rows[0].id;
-          temporaryManagerId = rows[0].id;
-          console.log(temporaryEmployeeRoleId);
+          // console.log("rows2", rows);
+          temporaryManagerId = rows[0].manager_id;
           console.log(temporaryManagerId);
+        })
+        .then((test) => {
+          // console.log("test", test);
           addEmployeeData(
             answer.employeeFirstName,
             answer.employeeLastName,
@@ -272,9 +285,9 @@ function updateEmployeeRoleQuestion() {
     ])
 
     .then((answer) => {
-      // print message "Updated employee's role"
-      console.log(`Updated ${answer.updateEmployeeName}'s role`);
-      // updateEmployeeRoleData(answer.updateEmployeeName);
+      db.promise().query(
+        
+      )
     })
 
     .catch((error) => {
@@ -326,7 +339,7 @@ function addDepartmentData(answer) {
   db.promise()
     .query(`INSERT INTO department (name) VALUES ("${answer}");`)
     .then(() => {
-      console.log(`Added ${answer.departmentName} to the database`);
+      console.log(`Added ${answer} to the database`);
       viewAllDepartments();
     })
     .catch((err) => console.log(err));
@@ -349,20 +362,18 @@ function addRoleData(roleName, roleSalary, roleDepartmentId) {
 function addEmployeeData(
   employeeFirstName,
   employeeLastName,
-  employeeRole,
-  employeeManager
+  employeeRoleId,
+  employeeManagerId
 ) {
   db.promise()
     .query(
-      `INSERT INTO employee (first_name, last_name, role_id, manager_id) VALUES ("${employeeFirstName}", "${employeeLastName}", "${employeeRole}", "${employeeManager}");`
+      `INSERT INTO employee (first_name, last_name, role_id, manager_id) VALUES ("${employeeFirstName}", "${employeeLastName}", "${employeeRoleId}", "${employeeManagerId}");`
     )
     .then(() => {
-      viewAllEmployees();
       console.log(
-        `Added ${
-          (answer.employeeFirstName, answer.employeeLastName)
-        } to the database`
+        `Added ${(employeeFirstName, employeeLastName)} to the database`
       );
+      viewAllEmployees();
     })
     .catch((err) => console.log(err));
 }
@@ -372,7 +383,10 @@ function addEmployeeData(
 function updateEmployeeRoleData(answer) {
   db.promise()
     .query(`INSERT INTO employee (name) VALUES ("${answer}");`)
-    .then(viewAllEmployees())
+    .then(() => {
+      console.log(`Updated ${answer}'s role`);
+      viewAllEmployees();
+    })
     .catch((err) => console.log(err));
 }
 // -------------------- END UPDATE DATA --------------------
