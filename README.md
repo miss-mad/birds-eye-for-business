@@ -28,7 +28,7 @@ Video link: https://drive.google.com/file/d/1i9vDdDTLYLmDfU2recQM0PSODGzLyGBb/vi
  * Change the printed console tables to show more column information, sometimes combined with other tables.
  * Make the department, role and employee lists dynamic within inquirer so that once one is added, the list next presented is the most recent list with the new additions.
  * Remove the (index) column from the printed data tables with console.table just to make it prettier.
- * Add the bonus features like more updates, deleting data, and sorting the column views 
+ * Add the bonus features like more updates, deleting data, and sorting the column views.
 
 ## Usage
 
